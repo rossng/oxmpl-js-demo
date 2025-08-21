@@ -1,12 +1,12 @@
 import { useRef, useState, useEffect } from "react";
-import { useCanvasRenderer } from "../hooks/useCanvasRenderer";
+import { useCanvasRenderer } from "../useCanvasRenderer";
 import PlannerControls, { PlannerConfig } from "./PlannerControls";
 import Legend from "./Legend";
-import {
-  CANVAS_SIZE,
-  DEFAULT_PLANNER_CONFIG,
-} from "../constants/plannerConfig";
-import type { PlannerWorkerMessage, PlannerWorkerResult } from "../workers/plannerWorker";
+import { CANVAS_SIZE, DEFAULT_PLANNER_CONFIG } from "../plannerConfig";
+import type {
+  PlannerWorkerMessage,
+  PlannerWorkerResult,
+} from "../plannerWorker";
 
 const MotionPlanningDemo = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -17,19 +17,22 @@ const MotionPlanningDemo = () => {
 
   useEffect(() => {
     workerRef.current = new Worker(
-      new URL("../workers/plannerWorker.ts", import.meta.url),
+      new URL("../plannerWorker.ts", import.meta.url),
       { type: "module" }
     );
 
-    workerRef.current.addEventListener("message", (event: MessageEvent<PlannerWorkerResult>) => {
-      if (event.data.type === "plannerResult") {
-        setPathStates(event.data.pathStates || []);
-        setIsPlanning(false);
-      } else if (event.data.type === "plannerError") {
-        console.error("Planning failed:", event.data.error);
-        setIsPlanning(false);
+    workerRef.current.addEventListener(
+      "message",
+      (event: MessageEvent<PlannerWorkerResult>) => {
+        if (event.data.type === "plannerResult") {
+          setPathStates(event.data.pathStates || []);
+          setIsPlanning(false);
+        } else if (event.data.type === "plannerError") {
+          console.error("Planning failed:", event.data.error);
+          setIsPlanning(false);
+        }
       }
-    });
+    );
 
     return () => {
       workerRef.current?.terminate();
@@ -38,7 +41,7 @@ const MotionPlanningDemo = () => {
 
   const runPlanner = () => {
     if (!workerRef.current) return;
-    
+
     setIsPlanning(true);
     setPathStates([]);
 
@@ -61,7 +64,13 @@ const MotionPlanningDemo = () => {
 
   return (
     <div className="demo-container">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "start",
+        }}
+      >
         <div>
           <h1>OxMPL Motion Planning Demo</h1>
           <p style={{ color: "#666" }}>
@@ -69,9 +78,9 @@ const MotionPlanningDemo = () => {
             <a href="https://github.com/juniorsundar/oxmpl">OxMPL</a> in 2D.
           </p>
         </div>
-        <a 
-          href="https://github.com/rossng/oxmpl-js-demo" 
-          target="_blank" 
+        <a
+          href="https://github.com/rossng/oxmpl-js-demo"
+          target="_blank"
           rel="noopener noreferrer"
           style={{
             display: "inline-flex",
@@ -90,11 +99,13 @@ const MotionPlanningDemo = () => {
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = "scale(1.05) translateY(-2px)";
-            e.currentTarget.style.boxShadow = "0 4px 20px rgba(102, 126, 234, 0.6)";
+            e.currentTarget.style.boxShadow =
+              "0 4px 20px rgba(102, 126, 234, 0.6)";
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = "scale(1) translateY(0)";
-            e.currentTarget.style.boxShadow = "0 2px 10px rgba(102, 126, 234, 0.4)";
+            e.currentTarget.style.boxShadow =
+              "0 2px 10px rgba(102, 126, 234, 0.4)";
           }}
           aria-label="View source on GitHub"
         >

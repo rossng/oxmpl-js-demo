@@ -9,5 +9,12 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["oxmpl-js"],
   },
+  build: {
+    target: "esnext",
+  },
+  worker: {
+    format: "es",
+    plugins: () => [wasm(), topLevelAwait()],
+  },
   base: process.env.NODE_ENV === "production" ? "/oxmpl-js-demo/" : "/",
 });

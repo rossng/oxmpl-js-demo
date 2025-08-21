@@ -7,7 +7,7 @@ import {
   GOAL_POSITION,
   GOAL_RADIUS,
   OBSTACLES,
-} from "../constants/plannerConfig";
+} from "./plannerConfig";
 
 interface UseCanvasRendererProps {
   canvasRef: RefObject<HTMLCanvasElement | null>;

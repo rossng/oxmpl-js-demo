@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import * as oxmpl from 'oxmpl-js';
 
 interface PlannerConfig {
+  type: 'RRT' | 'RRTStar' | 'RRTConnect' | 'PRM';
   maxDistance: number;
   goalBias: number;
   timeoutSecs: number;
+  searchRadius?: number;
+  connectionRadius?: number;
 }
 
 interface ObstacleConfig {
@@ -19,9 +22,12 @@ const MotionPlanningDemo = () => {
   const [isPlanning, setIsPlanning] = useState(false);
   const [pathStates, setPathStates] = useState<number[][]>([]);
   const [config, setConfig] = useState<PlannerConfig>({
+    type: 'RRT',
     maxDistance: 0.5,
     goalBias: 0.05,
-    timeoutSecs: 5.0
+    timeoutSecs: 5.0,
+    searchRadius: 1.0,
+    connectionRadius: 1.0
   });
 
   const worldSize = 10;
@@ -54,8 +60,22 @@ const MotionPlanningDemo = () => {
     return x >= 0 && x <= worldSize && y >= 0 && y <= worldSize;
   };
 
+  const createPlanner = () => {
+    switch (config.type) {
+      case 'RRT':
+        return new oxmpl.RRT(config.maxDistance, config.goalBias);
+      case 'RRTStar':
+        return new oxmpl.RRTStar(config.maxDistance, config.goalBias, config.searchRadius!);
+      case 'RRTConnect':
+        return new oxmpl.RRTConnect(config.maxDistance, config.goalBias);
+      case 'PRM':
+        return new oxmpl.PRM(config.timeoutSecs, config.connectionRadius!);
+      default:
+        return new oxmpl.RRT(config.maxDistance, config.goalBias);
+    }
+  };
+
   const runPlanner = () => {
-    
     setIsPlanning(true);
     setPathStates([]);
 
@@ -111,8 +131,13 @@ const MotionPlanningDemo = () => {
       
       const validityChecker = new oxmpl.StateValidityChecker(isStateValid);
 
-      const planner = new oxmpl.RRT(config.maxDistance, config.goalBias);
+      const planner = createPlanner();
       planner.setup(problemDef, validityChecker);
+
+      // PRM requires building a roadmap before solving
+      if (config.type === 'PRM' && 'constructRoadmap' in planner) {
+        (planner as any).constructRoadmap();
+      }
 
       const path = planner.solve(config.timeoutSecs);
       const states = path.getStates();
@@ -220,52 +245,100 @@ const MotionPlanningDemo = () => {
   return (
     <div className="demo-container">
       <h1>OxMPL Motion Planning Demo</h1>
-      <p>Rapidly-exploring Random Tree (RRT) path planning with obstacles</p>
+      <p>Interactive motion planning algorithms with obstacle avoidance</p>
       
       <div className="controls">
-        <div className="control-group">
+        <div className="control-group planner-select">
           <label>
-            Max Step Distance: {config.maxDistance}
-            <input
-              type="range"
-              min="0.1"
-              max="2.0"
-              step="0.1"
-              value={config.maxDistance}
-              onChange={(e) => setConfig({...config, maxDistance: parseFloat(e.target.value)})}
+            Planner Algorithm:
+            <select
+              value={config.type}
+              onChange={(e) => setConfig({...config, type: e.target.value as PlannerConfig['type']})}
               disabled={isPlanning}
-            />
+            >
+              <option value="RRT">RRT</option>
+              <option value="RRTStar">RRT*</option>
+              <option value="RRTConnect">RRT-Connect</option>
+              <option value="PRM">PRM</option>
+            </select>
           </label>
         </div>
-        
-        <div className="control-group">
-          <label>
-            Goal Bias: {config.goalBias}
-            <input
-              type="range"
-              min="0.0"
-              max="0.3"
-              step="0.01"
-              value={config.goalBias}
-              onChange={(e) => setConfig({...config, goalBias: parseFloat(e.target.value)})}
-              disabled={isPlanning}
-            />
-          </label>
-        </div>
-        
-        <div className="control-group">
-          <label>
-            Timeout (seconds): {config.timeoutSecs}
-            <input
-              type="range"
-              min="1.0"
-              max="10.0"
-              step="0.5"
-              value={config.timeoutSecs}
-              onChange={(e) => setConfig({...config, timeoutSecs: parseFloat(e.target.value)})}
-              disabled={isPlanning}
-            />
-          </label>
+
+        <div className="control-parameters">
+          <div className="control-group">
+            <label className={config.type === 'PRM' ? 'disabled' : ''}>
+              Max Step Distance: {config.maxDistance}
+              <input
+                type="range"
+                min="0.1"
+                max="2.0"
+                step="0.1"
+                value={config.maxDistance}
+                onChange={(e) => setConfig({...config, maxDistance: parseFloat(e.target.value)})}
+                disabled={isPlanning || config.type === 'PRM'}
+              />
+            </label>
+          </div>
+          
+          <div className="control-group">
+            <label className={config.type === 'PRM' ? 'disabled' : ''}>
+              Goal Bias: {config.goalBias}
+              <input
+                type="range"
+                min="0.0"
+                max="0.3"
+                step="0.01"
+                value={config.goalBias}
+                onChange={(e) => setConfig({...config, goalBias: parseFloat(e.target.value)})}
+                disabled={isPlanning || config.type === 'PRM'}
+              />
+            </label>
+          </div>
+
+          <div className="control-group">
+            <label className={config.type !== 'RRTStar' ? 'disabled' : ''}>
+              Search Radius: {config.searchRadius}
+              <input
+                type="range"
+                min="0.5"
+                max="3.0"
+                step="0.1"
+                value={config.searchRadius}
+                onChange={(e) => setConfig({...config, searchRadius: parseFloat(e.target.value)})}
+                disabled={isPlanning || config.type !== 'RRTStar'}
+              />
+            </label>
+          </div>
+
+          <div className="control-group">
+            <label className={config.type !== 'PRM' ? 'disabled' : ''}>
+              Connection Radius: {config.connectionRadius}
+              <input
+                type="range"
+                min="0.5"
+                max="3.0"
+                step="0.1"
+                value={config.connectionRadius}
+                onChange={(e) => setConfig({...config, connectionRadius: parseFloat(e.target.value)})}
+                disabled={isPlanning || config.type !== 'PRM'}
+              />
+            </label>
+          </div>
+          
+          <div className="control-group">
+            <label>
+              Timeout (seconds): {config.timeoutSecs}
+              <input
+                type="range"
+                min="1.0"
+                max="10.0"
+                step="0.5"
+                value={config.timeoutSecs}
+                onChange={(e) => setConfig({...config, timeoutSecs: parseFloat(e.target.value)})}
+                disabled={isPlanning}
+              />
+            </label>
+          </div>
         </div>
         
         <button 

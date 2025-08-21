@@ -1,0 +1,4 @@
+[submodule "oxmpl"]
+	path = oxmpl
+	url = https://github.com/rossng/oxmpl.git
+	branch = wasm-support

@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "build:oxmpl": "cd oxmpl/oxmpl-js && npm install && npm run build:bundler",
+    "build:oxmpl": "cd oxmpl/oxmpl-js && npm install && npm run build",
     "postinstall": "npm run build:oxmpl"
   },
   "dependencies": {
